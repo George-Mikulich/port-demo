@@ -1,0 +1,15 @@
+apiVersion: compute.gcp.upbound.io/v1beta1
+kind: RouterNAT
+metadata:
+  name: test-port-nat-router-config
+  labels:
+    composition: gke
+spec:
+  forProvider:
+    logConfig:
+      - enable: true
+        filter: ERRORS_ONLY
+    natIpAllocateOption: AUTO_ONLY
+    region: us-west1
+    router: test-port-nat-router
+    sourceSubnetworkIpRangesToNat: ALL_SUBNETWORKS_ALL_IP_RANGES

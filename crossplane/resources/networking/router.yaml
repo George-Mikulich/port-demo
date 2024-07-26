@@ -1,0 +1,12 @@
+apiVersion: compute.gcp.upbound.io/v1beta1
+kind: Router
+metadata:
+  name: test-port-nat-router
+  labels:
+    composition: gke
+spec:
+  forProvider:
+    networkSelector:
+      matchLabels: 
+        composition: gke
+    region: us-west1

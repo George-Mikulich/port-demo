@@ -1,0 +1,18 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: gkeclusters.guga-api.com
+spec:
+  group: guga-api.com
+  names:
+    kind: GKECluster
+    plural: gkeclusters
+  claimNames:
+    kind: GKEClusterClaim
+    plural: gkeclusterclaims
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema: {}

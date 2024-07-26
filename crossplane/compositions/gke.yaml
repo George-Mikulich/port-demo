@@ -1,0 +1,7 @@
+apiVersion: guga-api.com/v1alpha1
+kind: GKECluster
+metadata:
+  name: crossplane-created-cluster
+spec:
+  compositionRef:
+    name: google-kubernetes-cluster

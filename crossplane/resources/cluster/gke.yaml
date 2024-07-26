@@ -1,0 +1,19 @@
+apiVersion: container.gcp.upbound.io/v1beta1
+kind: Cluster
+metadata:
+  name: gke-crossplane-cluster
+  labels:
+    composition: gke
+spec:
+  forProvider:
+    initialNodeCount: 1
+    removeDefaultNodePool: true
+    location: us-west1-c
+    networkSelector:
+      matchLabels:
+        composition: gke
+    subnetworkSelector:
+      matchLabels:
+        composition: gke
+    ipAllocationPolicy:
+      - {}
