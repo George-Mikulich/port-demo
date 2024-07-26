@@ -1,28 +1,31 @@
 #!/bin/bash
 
-#set -e
+set -e
 
 kubectl config use-context minikube
 
 helm repo add \
-crossplane-stable https://charts.crossplane.io/stable
+ crossplane-stable https://charts.crossplane.io/stable
 helm repo update
 
 helm install crossplane \
---namespace crossplane-system \
---create-namespace crossplane-stable/crossplane \
---version 1.15.0
+ --namespace crossplane-system \
+ --create-namespace crossplane-stable/crossplane \
+ --version 1.15.0
 
-kubectl wait --for=condition=Ready pod -l app=crossplane -n crossplane-system
+sleep 5
+kubectl wait --for=condition=Ready pod \
+ --label app=crossplane \
+ --namespace crossplane-system
 
 helm repo add external-secrets \
-    https://charts.external-secrets.io
+ https://charts.external-secrets.io
 
 helm install \
-    external-secrets \
-    external-secrets/external-secrets \
-    --namespace external-secrets \
-    --create-namespace
+ external-secrets \
+ external-secrets/external-secrets \
+ --namespace external-secrets \
+ --create-namespace
 
 echo "Credentials are needed for external secrets (all other secrets will be managed by ESO)"
 for (( createSecretErrorCode=1; $createSecretErrorCode != 0 ; ))
@@ -31,9 +34,9 @@ do
         read -r -p '(Default path is ../key.json): ' answer
         export fullpath="${answer:-../key.json}"
         kubectl create secret \
-        generic gcp-secret \
-        -n external-secrets \
-        --from-file=creds=$fullpath
+         generic gcp-secret \
+         --namespace external-secrets \
+         --from-file=creds=$fullpath
         createSecretErrorCode=$?
         if [ $createSecretErrorCode != 0 ]
         then
@@ -42,16 +45,23 @@ do
         fi
 done
 
-kubectl wait --for=condition=Ready pod -l app.kubernetes.io/instance=external-secrets -n external-secrets
+sleep 5
+kubectl wait --for=condition=Ready pod \
+ --label app.kubernetes.io/instance=external-secrets \ 
+ --namespace external-secrets \
+ --timeout=180s
 
 sleep 3
 kubectl apply -f external-secrets-operator/secret-store.yaml
 sleep 3
-kubectl apply -f external-secrets-operator/crossplane-key.yaml -n crossplane-system
+kubectl apply -f external-secrets-operator/crossplane-key.yaml \ 
+ --namespace crossplane-system
 
 
 kubectl apply -f crossplane/gcp/provider.yaml
-kubectl wait --for=condition=healthy provider.pkg.crossplane.io --all
+sleep 5
+kubectl wait --for=condition=healthy provider.pkg.crossplane.io \
+ --all --timeout=1000s
 
 kubectl apply -f crossplane/gcp/provider-config.yaml
 kubectl apply -f crossplane/compositions/xrd.yaml
@@ -62,5 +72,6 @@ chmod +x bash/for-loop.sh
 kubectl apply -f crossplane/compositions/composition.yaml
 sleep 3
 
-kubectl apply -f gke.yaml
+kubectl apply -f crossplane/compositions/gke.yaml
 
+chmod +x destroy.sh

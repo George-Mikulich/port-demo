@@ -24,7 +24,9 @@ spec:
               filter: ERRORS_ONLY
           natIpAllocateOption: AUTO_ONLY
           region: us-west1
-          router: test-port-nat-router
+          routerSelector:
+            matchLabels:
+              composition: gke
           sourceSubnetworkIpRangesToNat: ALL_SUBNETWORKS_ALL_IP_RANGES
   - name: router
     base:
