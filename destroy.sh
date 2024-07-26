@@ -14,11 +14,10 @@ kubectl get providers -oname | xargs kubectl delete
 helm uninstall crossplane --namespace crossplane-system
 kubectl delete namespace crossplane-system
 
+kubectl get crd -oname | grep --color=never 'upbound.io' | xargs kubectl delete
+kubectl get crd -oname | grep --color=never 'crossplane.io' | xargs kubectl delete
+
 # External Secrets Operator
 
 helm uninstall external-secrets --namespace external-secrets
 kubectl delete namespace external-secrets
-
-# is this needed?
-#kubectl get crd -oname | grep --color=never 'upbound.io' | xargs kubectl delete
-#kubectl get crd -oname | grep --color=never 'crossplane.io' | xargs kubectl delete
