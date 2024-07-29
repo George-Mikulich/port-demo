@@ -15,7 +15,7 @@ helm install crossplane \
 
 sleep 5
 kubectl wait --for=condition=Ready pod \
- --label app=crossplane \
+ -l app=crossplane \
  --namespace crossplane-system
 
 helm repo add external-secrets \
@@ -27,35 +27,20 @@ helm install \
  --namespace external-secrets \
  --create-namespace
 
-echo "Credentials are needed for external secrets (all other secrets will be managed by ESO)"
-for (( createSecretErrorCode=1; $createSecretErrorCode != 0 ; ))
-do
-        echo "Please specify full path to Service Account key (.json file)"
-        read -r -p '(Default path is ../key.json): ' answer
-        export fullpath="${answer:-../key.json}"
-        kubectl create secret \
-         generic gcp-secret \
-         --namespace external-secrets \
-         --from-file=creds=$fullpath
-        createSecretErrorCode=$?
-        if [ $createSecretErrorCode != 0 ]
-        then
-                echo "There is no such file, try again"
-                echo
-        fi
-done
+chmod +x ./bash/ask-key.sh
+./bash/ask-key.sh
 
 sleep 5
 kubectl wait --for=condition=Ready pod \
- --label app.kubernetes.io/instance=external-secrets \ 
+ -l app.kubernetes.io/instance=external-secrets \
  --namespace external-secrets \
  --timeout=180s
 
 sleep 3
 kubectl apply -f external-secrets-operator/secret-store.yaml
 sleep 3
-kubectl apply -f external-secrets-operator/crossplane-key.yaml \ 
- --namespace crossplane-system
+kubectl apply -f external-secrets-operator/crossplane-key.yaml \
+ --namespace external-secrets
 
 
 kubectl apply -f crossplane/gcp/provider.yaml
@@ -66,12 +51,14 @@ kubectl wait --for=condition=healthy provider.pkg.crossplane.io \
 kubectl apply -f crossplane/gcp/provider-config.yaml
 kubectl apply -f crossplane/compositions/xrd.yaml
 
-chmod +x bash/for-loop.sh
+chmod +x ./bash/for-loop.sh
 ./bash/for-loop.sh crds 2
 
 kubectl apply -f crossplane/compositions/composition.yaml
 sleep 3
 
-kubectl apply -f crossplane/compositions/gke.yaml
+# final step
+# commented for port
+# kubectl apply -f crossplane/compositions/gke.yaml
 
 chmod +x destroy.sh
