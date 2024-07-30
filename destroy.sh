@@ -25,3 +25,8 @@ kubectl get crd -oname | grep --color=never 'crossplane.io' | xargs kubectl dele
 
 helm uninstall external-secrets --namespace external-secrets
 kubectl delete namespace external-secrets
+
+#argocd
+
+helm uninstall argocd -n argocd
+kubectl delete namespace argocd

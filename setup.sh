@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+#set -e
 
 kubectl config use-context minikube
 
@@ -16,7 +16,8 @@ helm install crossplane \
 sleep 5
 kubectl wait --for=condition=Ready pod \
  -l app=crossplane \
- --namespace crossplane-system
+ --namespace crossplane-system \
+ --timeout=180s
 
 helm repo add external-secrets \
  https://charts.external-secrets.io
@@ -39,8 +40,7 @@ kubectl wait --for=condition=Ready pod \
 sleep 3
 kubectl apply -f external-secrets-operator/secret-store.yaml
 sleep 3
-kubectl apply -f external-secrets-operator/crossplane-key.yaml \
- --namespace external-secrets
+kubectl apply -f external-secrets-operator/crossplane-key.yaml
 
 
 kubectl apply -f crossplane/gcp/provider.yaml
@@ -52,13 +52,28 @@ kubectl apply -f crossplane/gcp/provider-config.yaml
 kubectl apply -f crossplane/compositions/xrd.yaml
 
 chmod +x ./bash/for-loop.sh
-./bash/for-loop.sh crds 2
+./bash/for-loop.sh crds 2 "guga-api.com"
 
 kubectl apply -f crossplane/compositions/composition.yaml
 sleep 3
 
-# final step
-# commented for port
+# simple approach :
 # kubectl apply -f crossplane/compositions/gke.yaml
+
+chmod +x ./bash/port-installation.sh
+
+for (( exitCode=39; $exitCode == 39 ; ))
+do
+        ./bash/port-installation.sh
+        exitCode=$?
+done
+
+helm repo add argo https://argoproj.github.io/argo-helm
+helm install argocd \
+--namespace argocd \
+--create-namespace argo/argo-cd \
+--version 7.1.1
+
+kubectl apply -f argocd/app.yaml
 
 chmod +x destroy.sh
