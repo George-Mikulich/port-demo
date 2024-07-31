@@ -1,0 +1,81 @@
+version: '3'
+
+tasks:
+  hello:
+    desc: Prints Hello message
+    cmds:
+      - echo 'Hello World from Task!'
+    silent: true
+
+  create-gke-cluster:
+    deps:
+      - task: setup-crossplane
+    cmds:
+      - kubectl apply -f crossplane/compositions/gke.yaml
+
+  install-eso:
+    deps:
+      - task: helm-add-repos
+    cmds:
+      - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace
+      - sleep 10
+      - kubectl wait --for=condition=Ready pod -l app.kubernetes.io/instance=external-secrets -n external-secrets --timeout=180s
+  
+  install-crossplane:
+    deps:
+      - task: helm-add-repos
+    cmds:
+      - helm install crossplane -n crossplane-system crossplane-stable/crossplane --create-namespace --version 1.15.0
+      - sleep 10
+      - kubectl wait --for=condition=Ready pod -l app=crossplane --namespace crossplane-system --timeout=180s
+
+  create-crossplane-sa-key-secret:
+    deps:
+      - task: install-eso
+    cmds:
+      - kubectl create secret generic gcp-secret -n external-secrets --from-file=creds=../key.json
+      - sleep 3 # bash script above
+      - kubectl apply -f external-secrets-operator/secret-store.yaml
+      - sleep 3
+      - kubectl apply -f external-secrets-operator/crossplane-key.yaml
+
+  setup-crossplane:
+    deps:
+      - task: create-crossplane-sa-key-secret
+      - task: install-crossplane
+    cmds:
+      - kubectl apply -f crossplane/gcp/provider.yaml
+      - sleep 5
+      - kubectl wait --for=condition=healthy provider.pkg.crossplane.io --all --timeout=1000s
+      - kubectl apply -f crossplane/gcp/provider-config.yaml
+      - kubectl apply -f crossplane/compositions/xrd.yaml
+      - sleep 60 #bash script here
+      - kubectl apply -f crossplane/compositions/composition.yaml
+      - sleep 3
+
+  kind-start:
+    cmds:
+      - kind create cluster
+  
+  helm-add-repos:
+    deps:
+      - task: kind-start
+    cmds:
+      - helm repo add crossplane-stable https://charts.crossplane.io/stable
+      - helm repo add external-secrets https://charts.external-secrets.io
+      - helm repo update
+    internal: true
+
+  destroy-cluster:
+    deps:
+      - task: destroy-crossplane
+    cmds:
+      - kind delete cluster
+
+  destroy-crossplane:
+    cmds:
+      - kubectl get xrds -oname | xargs kubectl delete
+      - kubectl get managed -oname | xargs kubectl delete
+      - kubectl get providers -oname | xargs kubectl delete
+      - helm uninstall crossplane --namespace crossplane-system
+      - kubectl delete namespace crossplane-system
